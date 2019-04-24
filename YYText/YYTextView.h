@@ -345,6 +345,16 @@ NS_ASSUME_NONNULL_BEGIN
  */
 @property (nonatomic) CGFloat extraAccessoryViewHeight;
 
+// 自定义菜单代理Block
+@property (nullable, nonatomic, strong) void (^showMenuBlock)(CGRect selectRect);
+@property (nullable, nonatomic, strong) void (^hideMenuBlock)(void);
+@property (nonatomic, assign) BOOL tapGestureNeedHideMenu;
+@property (nonatomic, assign) BOOL invalidateLognPressTimer;
+
+- (void)showMenu;
+- (void)hideMenu;
+- (BOOL)trackingGrabber;
+
 @end
 
 

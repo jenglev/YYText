@@ -206,6 +206,9 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
 #pragma mark - @protocol UITextInput optional
 @synthesize selectionAffinity = _selectionAffinity;
 
+- (BOOL)trackingGrabber {
+    return _state.trackingGrabber;
+}
 
 #pragma mark - Private
 
@@ -584,6 +587,10 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
     }
 }
 
+- (void)showMenu {
+    [self _showMenu];
+}
+
 /// Show and update the UIMenuController.
 - (void)_showMenu {
     CGRect rect;
@@ -636,23 +643,38 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
     
     if (self.isFirstResponder || _containerView.isFirstResponder) {
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(0.01 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-            UIMenuController *menu = [UIMenuController sharedMenuController];
-            [menu setTargetRect:CGRectStandardize(rect) inView:_selectionView];
-            [menu update];
-            if (!_state.showingMenu || !menu.menuVisible) {
+            if (_showMenuBlock) {
+                CGRect newRect = [self convertRect:rect toView:[UIApplication sharedApplication].keyWindow];
                 _state.showingMenu = YES;
-                [menu setMenuVisible:YES animated:YES];
+                _showMenuBlock(newRect);
+            } else {
+                UIMenuController *menu = [UIMenuController sharedMenuController];
+                [menu setTargetRect:CGRectStandardize(rect) inView:_selectionView];
+                [menu update];
+                if (!_state.showingMenu || !menu.menuVisible) {
+                    _state.showingMenu = YES;
+                    [menu setMenuVisible:YES animated:YES];
+                }
             }
         });
     }
+}
+
+- (void)hideMenu {
+    [self _hideMenu];
 }
 
 /// Hide the UIMenuController.
 - (void)_hideMenu {
     if (_state.showingMenu) {
         _state.showingMenu = NO;
-        UIMenuController *menu = [UIMenuController sharedMenuController];
-        [menu setMenuVisible:NO animated:YES];
+        
+        if (_hideMenuBlock) {
+            _hideMenuBlock();
+        } else {
+            UIMenuController *menu = [UIMenuController sharedMenuController];
+            [menu setMenuVisible:NO animated:YES];
+        }
     }
     if (_containerView.isFirstResponder) {
         _state.ignoreFirstResponder = YES;
@@ -2529,13 +2551,15 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
     }
     
     if (_state.trackingTouch) {
-        [self _startLongPressTimer];
+        if (self.invalidateLognPressTimer == NO) {
+            [self _startLongPressTimer];
+        }
         if (_highlight) {
             [self _showHighlightAnimated:NO];
         } else {
             if ([_selectionView isGrabberContainsPoint:point]) { // track grabber
                 self.panGestureRecognizer.enabled = NO; // disable scroll view
-                [self _hideMenu];
+//                [self _hideMenu];
                 _state.trackingGrabber = [_selectionView isStartGrabberContainsPoint:point] ? kStart : kEnd;
                 _magnifierRangedOffset = [self _getMagnifierRangedOffset];
             } else {
@@ -2592,8 +2616,8 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
                 showMagnifierCaret = YES;
             } else if (_state.trackingCaret || _markedTextRange || self.isFirstResponder) {
                 if (_state.trackingCaret || _state.touchMoved) {
-                    _state.trackingCaret = YES;
-                    [self _hideMenu];
+//                    _state.trackingCaret = YES;
+//                    [self _hideMenu];
                     if (_verticalForm) {
                         if (_state.touchMoved == kTop || _state.touchMoved == kBottom) {
                             self.panGestureRecognizer.enabled = NO;
@@ -2603,11 +2627,11 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
                             self.panGestureRecognizer.enabled = NO;
                         }
                     }
-                    [self _updateTextRangeByTrackingCaret];
+//                    [self _updateTextRangeByTrackingCaret];
                     if (_markedTextRange) {
                         showMagnifierRanged = YES;
                     } else {
-                        showMagnifierCaret = YES;
+//                        showMagnifierCaret = YES;
                     }
                 }
             }
@@ -2701,7 +2725,9 @@ typedef NS_ENUM(NSUInteger, YYTextMoveDirection) {
                                 if (_state.showingMenu) [self _hideMenu];
                                 else [self _showMenu];
                             } else {
-                                [self _hideMenu];
+                                if (self.tapGestureNeedHideMenu) {
+                                    [self _hideMenu];
+                                }
                             }
                         } else {
                             [self _hideMenu];
