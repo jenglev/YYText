@@ -1467,17 +1467,19 @@ fail:
         }
     }
     
-    // above whole text frame
-    if (lineIndex == 0 && (isVertical ? (point.x > line.right) : (point.y < line.top))) {
-        position = 0;
-        finalAffinity = YYTextAffinityForward;
-        finalAffinityDetected = YES;
-    }
-    // below whole text frame
-    if (lineIndex == _lines.count - 1 && (isVertical ? (point.x < line.left) : (point.y > line.bottom))) {
-        position = line.range.location + line.range.length;
-        finalAffinity = YYTextAffinityBackward;
-        finalAffinityDetected = YES;
+    if (_needCorrectPoint) {
+        // above whole text frame
+        if (lineIndex == 0 && (isVertical ? (point.x > line.right) : (point.y < line.top))) {
+            position = 0;
+            finalAffinity = YYTextAffinityForward;
+            finalAffinityDetected = YES;
+        }
+        // below whole text frame
+        if (lineIndex == _lines.count - 1 && (isVertical ? (point.x < line.left) : (point.y > line.bottom))) {
+            position = line.range.location + line.range.length;
+            finalAffinity = YYTextAffinityBackward;
+            finalAffinityDetected = YES;
+        }
     }
     
     // There must be at least one non-linebreak char,
@@ -1547,6 +1549,11 @@ fail:
     }
     YYTextPosition *newPos = [self closestPositionToPoint:point];
     if (!newPos) return oldPosition;
+    
+    if (_supportGraberOrder == NO) {
+        return newPos;
+    }
+    
     if ([newPos compare:otherPosition] == [oldPosition compare:otherPosition] &&
         newPos.offset != otherPosition.offset) {
         return newPos;
@@ -2251,7 +2258,7 @@ static void YYTextDrawRun(YYTextLine *line, CTRunRef run, CGContextRef context, 
         
         CGContextSaveGState(context); {
             CGContextSetFillColorWithColor(context, fillColor);
-            if (strokeWidth == nil || strokeWidth.floatValue == 0) {
+            if (!strokeWidth || strokeWidth.floatValue == 0) {
                 CGContextSetTextDrawingMode(context, kCGTextFill);
             } else {
                 CGColorRef strokeColor = (CGColorRef)CFDictionaryGetValue(runAttrs, kCTStrokeColorAttributeName);
@@ -2901,7 +2908,7 @@ static void YYTextDrawDecoration(YYTextLayout *layout, CGContextRef context, CGS
                     color = (__bridge CGColorRef)(attrs[(id)kCTForegroundColorAttributeName]);
                     color = YYTextGetCGColor(color);
                 }
-                CGFloat thickness = (underline.width != nil) ? underline.width.floatValue : lineThickness;
+                CGFloat thickness = underline.width ? underline.width.floatValue : lineThickness;
                 YYTextShadow *shadow = underline.shadow;
                 while (shadow) {
                     if (!shadow.color) {
@@ -2930,7 +2937,7 @@ static void YYTextDrawDecoration(YYTextLayout *layout, CGContextRef context, CGS
                     color = (__bridge CGColorRef)(attrs[(id)kCTForegroundColorAttributeName]);
                     color = YYTextGetCGColor(color);
                 }
-                CGFloat thickness = (strikethrough.width != nil) ? strikethrough.width.floatValue : lineThickness;
+                CGFloat thickness = strikethrough.width ? strikethrough.width.floatValue : lineThickness;
                 YYTextShadow *shadow = underline.shadow;
                 while (shadow) {
                     if (!shadow.color) {

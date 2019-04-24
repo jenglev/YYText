@@ -64,7 +64,7 @@ extern const CGSize YYTextContainerMaxSize;
 /// Creates a container with the specified size and insets. @param size The size. @param insets The text insets.
 + (instancetype)containerWithSize:(CGSize)size insets:(UIEdgeInsets)insets;
 
-/// Creates a container with the specified path. @param path The path.
+/// Creates a container with the specified path. @param size The path.
 + (instancetype)containerWithPath:(nullable UIBezierPath *)path;
 
 /// The constrained size. (if the size is larger than YYTextContainerMaxSize, it will be clipped)
@@ -269,6 +269,11 @@ extern const CGSize YYTextContainerMaxSize;
 @property (nonatomic, readonly) BOOL needDrawStrikethrough;
 ///< Has border attribute
 @property (nonatomic, readonly) BOOL needDrawBorder;
+
+//是否支持文本选择器光标前后顺序
+@property (nonatomic, readonly) BOOL supportGraberOrder;
+//是否矫正拖动点的位置
+@property (nonatomic, readonly) BOOL needCorrectPoint;
 
 
 #pragma mark - Query information from text layout
